@@ -34,9 +34,87 @@ services:
       - "1025:1025" # smtp server
       - "8025:8025" # web ui http://localhost:8025/
 
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RMQ_HOST=rabbit
+      - MYSQL_HOST=db
+    command: celery -A celery_app beat --loglevel=debug
+    depends_on:
+      - rabbit
+
+  parser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RMQ_HOST=rabbit
+      - MYSQL_HOST=db
+      - WORK_DIR=/scan_directory
+    command:  bash -c "python3 database/migration.py && celery -A celery_app worker --pool=prefork --concurrency=10 -Q Parsing --loglevel=debug"
+    volumes:
+      - scan_directory:/scan_directory
+    depends_on:
+     - db
+     - rabbit
+    restart: on-failure
+
+  sender:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RMQ_HOST=rabbit
+      - MYSQL_HOST=db
+      - WORK_DIR=/scan_directory
+      - SMTP_HOST=mock_mail
+      - SMTP_PORT=1025
+    command: celery -A celery_app worker --pool=prefork --concurrency=10 -Q Errors --loglevel=debug
+    volumes:
+      - scan_directory:/scan_directory
+    depends_on:
+      - rabbit
+      - mock_mail
+    restart: on-failure
+
+  watch_dog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RMQ_HOST=rabbit
+      - MYSQL_HOST=db
+      - WORK_DIR=/scan_directory
+    command:  celery -A celery_app worker --loglevel=debug
+    volumes:
+      - scan_directory:/scan_directory
+    depends_on:
+     - db
+     - rabbit
+    restart: on-failure
+
+  reader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RMQ_HOST=rabbit
+      - MYSQL_HOST=db
+      - WORK_DIR=/scan_directory
+    command: celery -A celery_app worker --concurrency=1 -Q Reader --loglevel=debug
+    volumes:
+      - scan_directory:/scan_directory
+    depends_on:
+     - db
+     - rabbit
+    restart: on-failure
 
 volumes:
   billing_core_rabbit_data:
     name: billing_core_rabbit_data
   mysql:
     name: mysql
+  scan_directory:
+    name: scan_directory

@@ -3,8 +3,7 @@
 Migrations for database
 
 """
-from . import db_connect
-
+import db_connect
 
 CREATE_TABLE_WORDS: str = """
         CREATE TABLE IF NOT EXISTS words (

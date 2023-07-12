@@ -1,36 +1,38 @@
-import logging
+"""
+
+Settings for all modules
+
+"""
 import os
 
 
-# Logging
-LOGLEVEL = logging.WARNING
-logging.basicConfig(format='[%(asctime)s] %(levelname)s:%(message)s', level=LOGLEVEL)
-
-
-BASE_DIR = os.path.dirname(__file__)
-work_dir: str = f"{BASE_DIR}/files_to_process"
+WORK_DIR: str = os.environ.get("WORK_DIR", os.path.dirname(__file__))
 
 # watch_dog
-list_files: str = "list_files"
+DIRECTORY_FROM_RESERVATION: str = f"{WORK_DIR}/files_to_process"
+if not os.path.exists(DIRECTORY_FROM_RESERVATION):
+    os.makedirs(DIRECTORY_FROM_RESERVATION)
 
-REQUEST_PERIOD = 5
+PROCESSED_FILES: str = f"{WORK_DIR}/list_files"
+CHECK_NEW_FILES_TIMEOUT: float = float(
+    os.environ.get("CHECK_NEW_FILES_TIMEOUT", "60")
+)  # seconds
 
 # RabbitMQ
 RMQ_HOST: str = os.environ.get("RMQ_HOST", "localhost")
 RMQ_CONNECT_PARAMETERS: dict = {"host": RMQ_HOST}
-
-QUEUE_PARSING: str = os.environ.get("PARSING", "Parsing")
-QUEUE_ERRORS: str = os.environ.get("ERRORS", "Errors")
-
 RMQ_USER: str = os.environ.get("RMQ_USER", "admin")
 RMQ_PASSWORD: str = os.environ.get("RMQ_PASSWORD", "admin")
 CREDENTIALS: dict = {"username": RMQ_USER, "password": RMQ_PASSWORD}
 
 # Celery
+CELERY_QUEUE_PARSING: str = os.environ.get("PARSING", "Parsing")
+CELERY_QUEUE_ERRORS: str = os.environ.get("ERRORS", "Errors")
+CELERY_QUEUE_READER: str = os.environ.get("CELERY_QUEUE_READER", "Reader")
 CELERY_RUN_PARAMETERS: dict = {
-    "broker": f"amqp://{RMQ_USER}:{RMQ_PASSWORD}@{RMQ_HOST}//"
+    "broker": f"amqp://{RMQ_USER}:{RMQ_PASSWORD}@{RMQ_HOST}//",
+    "broker_connection_retry_on_startup": True,
 }
-CELERY_ERROR_QUEUE: str = os.environ.get("CELERY_ERROR_QUEUE", "mail_notification")
 ERROR_NOTIFICATIONS_MAX_RETRIES: int = int(
     os.environ.get("ERROR_NOTIFICATIONS_MAX_RETRIES", "5")
 )
@@ -46,9 +48,16 @@ MYSQL_USER: str = os.environ.get("MYSQL_USER", "admin")
 MYSQL_PASSWORD: str = os.environ.get("MYSQL_PASSWORD", "admin")
 
 # SMTP
-SMTP_SERVER: str = os.environ.get("SMTP_SERVER", "localhost:1025")
+SMTP_HOST: str = os.environ.get("SMTP_HOST", "localhost")
+SMTP_PORT: int = int(os.environ.get("SMTP_SERVER", "1025"))
 MAIL_SENDER: str = os.environ.get("MAIL_SENDER", "from@fromdomain.com")
 MAIL_RECEIVERS: list = os.environ.get("MAIL_RECEIVERS", "to@todomain.com").split(" ")
 
 # Reader
 FRINGE_WRITE_TO_FILE: int = int(os.environ.get("FRINGE_WRITE_TO_FILE", "4300"))
+CHECK_WORDS_FOR_WRITE: int = int(os.environ.get("CHECK_WORDS_FOR_WRITE", "5"))
+
+RESULT_DIRECTORY: str = os.environ.get("RESULT_DIRECTORY", "results/")
+RESULT_DIRECTORY_PATH: str = f"{WORK_DIR}/{RESULT_DIRECTORY}"
+if not os.path.exists(RESULT_DIRECTORY_PATH):
+    os.makedirs(RESULT_DIRECTORY_PATH)
